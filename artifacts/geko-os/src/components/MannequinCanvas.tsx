@@ -9,6 +9,7 @@ export interface MannequinData {
   arms: number;
   waist: number;
   color?: string;
+  bottomColor?: string;
 }
 
 interface Props {
@@ -17,9 +18,8 @@ interface Props {
 
 export function MannequinCanvas({ data }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const mannequinGroupRef = useRef<THREE.Group | null>(null);
   const [webglError, setWebglError] = useState(false);
@@ -28,25 +28,21 @@ export function MannequinCanvas({ data }: Props) {
     torso: THREE.Mesh;
     hips: THREE.Mesh;
     armSegments: THREE.Mesh[];
+    legMeshes: THREE.Mesh[];
+    torsoMat: THREE.MeshStandardMaterial;
+    bottomMat: THREE.MeshStandardMaterial;
   } | null>(null);
 
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // Pre-check WebGL availability before touching THREE at all
     const checkCanvas = document.createElement("canvas");
     const gl = checkCanvas.getContext("webgl") || checkCanvas.getContext("experimental-webgl");
-    if (!gl) {
-      setWebglError(true);
-      return;
-    }
+    if (!gl) { setWebglError(true); return; }
 
-    // Scene
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#0a0a0f");
-    sceneRef.current = scene;
+    scene.background = new THREE.Color("#08080e");
 
-    // Camera
     const camera = new THREE.PerspectiveCamera(
       45,
       mountRef.current.clientWidth / mountRef.current.clientHeight,
@@ -56,25 +52,18 @@ export function MannequinCanvas({ data }: Props) {
     camera.position.set(0, 1.5, 3.5);
     cameraRef.current = camera;
 
-    // Renderer — graceful fallback if WebGL is unavailable (e.g. sandboxed env)
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    } catch {
-      setWebglError(true);
-      return;
-    }
+    } catch { setWebglError(true); return; }
     if (!renderer.capabilities || renderer.getContext() === null) {
-      setWebglError(true);
-      renderer.dispose();
-      return;
+      setWebglError(true); renderer.dispose(); return;
     }
     renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -83,126 +72,68 @@ export function MannequinCanvas({ data }: Props) {
     controls.autoRotateSpeed = 1.5;
     controlsRef.current = controls;
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.position.set(-2, 5, 2);
     scene.add(dirLight);
-
-    const pointLight = new THREE.PointLight(0x00e5ff, 2, 10);
+    const pointLight = new THREE.PointLight(0x8b5cf6, 2, 10);
     pointLight.position.set(2, 2, 2);
     scene.add(pointLight);
 
-    // Grid Floor
-    const gridHelper = new THREE.GridHelper(10, 20, 0x00e5ff, 0x1a1a24);
-    gridHelper.position.y = -0.5;
+    const gridHelper = new THREE.GridHelper(10, 20, 0x8b5cf6, 0x1a1a24);
+    gridHelper.position.y = -0.55;
     scene.add(gridHelper);
 
-    // Materials
-    const skinMaterial = new THREE.MeshStandardMaterial({
-      color: 0xc0c0d0,
-      roughness: 0.4,
-      metalness: 0.6,
-    });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xc0c0d0, roughness: 0.4, metalness: 0.6 });
+    const torsoMat = new THREE.MeshStandardMaterial({ color: data.color || "#2a2a3a", roughness: 0.6, metalness: 0.3 });
+    const bottomMat = new THREE.MeshStandardMaterial({ color: data.bottomColor || data.color || "#2a2a3a", roughness: 0.6, metalness: 0.3 });
 
-    const torsoMaterial = new THREE.MeshStandardMaterial({
-      color: data.color || "#2a2a3a",
-      roughness: 0.7,
-      metalness: 0.2,
-    });
-
-    // Geometries & Meshes
     const mannequinGroup = new THREE.Group();
     scene.add(mannequinGroup);
     mannequinGroupRef.current = mannequinGroup;
 
-    // Head
-    const headGeo = new THREE.SphereGeometry(0.18, 32, 32);
-    const head = new THREE.Mesh(headGeo, skinMaterial);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 32, 32), skinMat);
     head.position.y = 1.45;
     mannequinGroup.add(head);
 
-    // Neck
-    const neckGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.12, 16);
-    const neck = new THREE.Mesh(neckGeo, skinMaterial);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.12, 16), skinMat);
     neck.position.y = 1.25;
     mannequinGroup.add(neck);
 
-    // Torso
-    const torsoGeo = new THREE.CylinderGeometry(0.22, 0.18, 0.55, 32);
-    const torso = new THREE.Mesh(torsoGeo, torsoMaterial);
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.55, 32), torsoMat);
     torso.position.y = 0.9;
     mannequinGroup.add(torso);
 
-    // Hips
-    const hipsGeo = new THREE.CylinderGeometry(0.20, 0.22, 0.2, 32);
-    const hips = new THREE.Mesh(hipsGeo, skinMaterial);
+    const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.22, 0.2, 32), bottomMat);
     hips.position.y = 0.5;
     mannequinGroup.add(hips);
 
-    // Arms Group (to scale shoulders spread)
     const armsGroup = new THREE.Group();
     armsGroup.position.y = 1.1;
     mannequinGroup.add(armsGroup);
 
     const armSegments: THREE.Mesh[] = [];
+    const makeArm = (x: number, rotZ: number, lx: number, lrz: number) => {
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.3, 16), skinMat);
+      upper.position.set(x, -0.1, 0); upper.rotation.z = rotZ; armsGroup.add(upper); armSegments.push(upper);
+      const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.28, 16), skinMat);
+      lower.position.set(lx, -0.4, 0); lower.rotation.z = lrz; armsGroup.add(lower); armSegments.push(lower);
+    };
+    makeArm(-0.3, Math.PI / 16, -0.35, Math.PI / 24);
+    makeArm(0.3, -Math.PI / 16, 0.35, -Math.PI / 24);
 
-    // Left Arm
-    const leftUpperArmGeo = new THREE.CylinderGeometry(0.07, 0.065, 0.3, 16);
-    const leftUpperArm = new THREE.Mesh(leftUpperArmGeo, skinMaterial);
-    leftUpperArm.position.set(-0.3, -0.1, 0);
-    leftUpperArm.rotation.z = Math.PI / 16;
-    armsGroup.add(leftUpperArm);
-    armSegments.push(leftUpperArm);
+    const legMeshes: THREE.Mesh[] = [];
+    const makeLeg = (x: number) => {
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.38, 16), bottomMat);
+      upper.position.set(x, 0.2, 0); mannequinGroup.add(upper); legMeshes.push(upper);
+      const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.35, 16), bottomMat);
+      lower.position.set(x, -0.18, 0); mannequinGroup.add(lower); legMeshes.push(lower);
+    };
+    makeLeg(-0.12);
+    makeLeg(0.12);
 
-    const leftLowerArmGeo = new THREE.CylinderGeometry(0.065, 0.06, 0.28, 16);
-    const leftLowerArm = new THREE.Mesh(leftLowerArmGeo, skinMaterial);
-    leftLowerArm.position.set(-0.35, -0.4, 0);
-    leftLowerArm.rotation.z = Math.PI / 24;
-    armsGroup.add(leftLowerArm);
-    armSegments.push(leftLowerArm);
+    partsRef.current = { armsGroup, torso, hips, armSegments, legMeshes, torsoMat, bottomMat };
 
-    // Right Arm
-    const rightUpperArmGeo = new THREE.CylinderGeometry(0.07, 0.065, 0.3, 16);
-    const rightUpperArm = new THREE.Mesh(rightUpperArmGeo, skinMaterial);
-    rightUpperArm.position.set(0.3, -0.1, 0);
-    rightUpperArm.rotation.z = -Math.PI / 16;
-    armsGroup.add(rightUpperArm);
-    armSegments.push(rightUpperArm);
-
-    const rightLowerArmGeo = new THREE.CylinderGeometry(0.065, 0.06, 0.28, 16);
-    const rightLowerArm = new THREE.Mesh(rightLowerArmGeo, skinMaterial);
-    rightLowerArm.position.set(0.35, -0.4, 0);
-    rightLowerArm.rotation.z = -Math.PI / 24;
-    armsGroup.add(rightLowerArm);
-    armSegments.push(rightLowerArm);
-
-    // Legs
-    const leftUpperLegGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.38, 16);
-    const leftUpperLeg = new THREE.Mesh(leftUpperLegGeo, skinMaterial);
-    leftUpperLeg.position.set(-0.12, 0.2, 0);
-    mannequinGroup.add(leftUpperLeg);
-
-    const leftLowerLegGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.35, 16);
-    const leftLowerLeg = new THREE.Mesh(leftLowerLegGeo, skinMaterial);
-    leftLowerLeg.position.set(-0.12, -0.18, 0);
-    mannequinGroup.add(leftLowerLeg);
-
-    const rightUpperLegGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.38, 16);
-    const rightUpperLeg = new THREE.Mesh(rightUpperLegGeo, skinMaterial);
-    rightUpperLeg.position.set(0.12, 0.2, 0);
-    mannequinGroup.add(rightUpperLeg);
-
-    const rightLowerLegGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.35, 16);
-    const rightLowerLeg = new THREE.Mesh(rightLowerLegGeo, skinMaterial);
-    rightLowerLeg.position.set(0.12, -0.18, 0);
-    mannequinGroup.add(rightLowerLeg);
-
-    partsRef.current = { armsGroup, torso, hips, armSegments };
-
-    // Animation Loop
     let animationFrameId: number;
     const renderLoop = () => {
       controls.update();
@@ -211,103 +142,72 @@ export function MannequinCanvas({ data }: Props) {
     };
     renderLoop();
 
-    // Resize Handler
     const handleResize = () => {
-      if (!mountRef.current || !cameraRef.current || !rendererRef.current) return;
-      const width = mountRef.current.clientWidth;
-      const height = mountRef.current.clientHeight;
-      cameraRef.current.aspect = width / height;
-      cameraRef.current.updateProjectionMatrix();
-      rendererRef.current.setSize(width, height);
+      if (!mountRef.current) return;
+      const w = mountRef.current.clientWidth;
+      const h = mountRef.current.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
     };
     window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
-      if (mountRef.current && renderer.domElement) {
+      if (mountRef.current && renderer.domElement.parentNode === mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
       renderer.dispose();
-      skinMaterial.dispose();
-      torsoMaterial.dispose();
-      headGeo.dispose();
-      neckGeo.dispose();
-      torsoGeo.dispose();
-      hipsGeo.dispose();
-      leftUpperArmGeo.dispose();
-      leftLowerArmGeo.dispose();
-      rightUpperArmGeo.dispose();
-      rightLowerArmGeo.dispose();
-      leftUpperLegGeo.dispose();
-      leftLowerLegGeo.dispose();
-      rightUpperLegGeo.dispose();
-      rightLowerLegGeo.dispose();
     };
   }, []);
 
-  // Sync data to mannequin
   useEffect(() => {
     if (!partsRef.current || !mannequinGroupRef.current) return;
-    const { armsGroup, torso, hips, armSegments } = partsRef.current;
+    const { armsGroup, torso, hips, armSegments, legMeshes, torsoMat, bottomMat } = partsRef.current;
 
-    // Height: map 150-210 to 0.85-1.15
-    const heightScale = 0.85 + ((data.height - 150) / 60) * 0.3;
-    mannequinGroupRef.current.scale.y = heightScale;
-
-    // Shoulders: map 30-60 to 0.85-1.15
-    const shoulderScale = 0.85 + ((data.shoulders - 30) / 30) * 0.3;
-    armsGroup.scale.x = shoulderScale;
-
-    // Chest: map 70-120 to 0.85-1.15
+    mannequinGroupRef.current.scale.y = 0.85 + ((data.height - 150) / 60) * 0.3;
+    armsGroup.scale.x = 0.85 + ((data.shoulders - 30) / 30) * 0.3;
     const chestScale = 0.85 + ((data.chest - 70) / 50) * 0.3;
     torso.scale.x = chestScale;
     torso.scale.z = chestScale;
-
-    // Arms: map 50-80 to 0.85-1.15
-    const armsScale = 0.85 + ((data.arms - 50) / 30) * 0.3;
-    armSegments.forEach(mesh => {
-      mesh.scale.y = armsScale;
-    });
-
-    // Waist: map 60-110 to 0.85-1.15
+    armSegments.forEach(m => { m.scale.y = 0.85 + ((data.arms - 50) / 30) * 0.3; });
     const waistScale = 0.85 + ((data.waist - 60) / 50) * 0.3;
     hips.scale.x = waistScale;
     hips.scale.z = waistScale;
 
-    if (data.color) {
-      (torso.material as THREE.MeshStandardMaterial).color.set(data.color);
-    } else {
-      (torso.material as THREE.MeshStandardMaterial).color.set("#2a2a3a");
-    }
-
+    torsoMat.color.set(data.color || "#2a2a3a");
+    const bc = data.bottomColor || data.color || "#2a2a3a";
+    bottomMat.color.set(bc);
+    hips.material = bottomMat;
+    legMeshes.forEach(m => { m.material = bottomMat; });
   }, [data]);
 
   if (webglError) {
+    const tc = data.color || "#2a2a3a";
+    const bc = data.bottomColor || data.color || "#2a2a3a";
     return (
-      <div className="w-full h-full rounded-xl overflow-hidden border border-primary/20 bg-[#0a0a0f] flex flex-col items-center justify-center gap-4">
-        <div className="w-24 h-24 relative">
-          {/* SVG mannequin silhouette fallback */}
-          <svg viewBox="0 0 100 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-60">
-            <circle cx="50" cy="18" r="14" fill="#c0c0d0" />
-            <rect x="44" y="30" width="12" height="10" rx="2" fill="#c0c0d0" />
-            <rect x="30" y="38" width="40" height="45" rx="4" fill="#2a2a3a" stroke="#00e5ff" strokeWidth="1" />
-            <rect x="15" y="40" width="14" height="36" rx="4" fill="#c0c0d0" />
-            <rect x="71" y="40" width="14" height="36" rx="4" fill="#c0c0d0" />
-            <rect x="33" y="82" width="15" height="16" rx="3" fill="#c0c0d0" />
-            <rect x="52" y="82" width="15" height="16" rx="3" fill="#c0c0d0" />
-            <rect x="30" y="96" width="18" height="56" rx="4" fill="#c0c0d0" />
-            <rect x="52" y="96" width="18" height="56" rx="4" fill="#c0c0d0" />
+      <div className="w-full h-full rounded-xl overflow-hidden border border-primary/20 bg-[#08080e] flex flex-col items-center justify-center gap-4">
+        <div className="w-28 h-auto relative">
+          <svg viewBox="0 0 100 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-80">
+            <circle cx="50" cy="16" r="13" fill="#c0c0d0" />
+            <rect x="44" y="27" width="12" height="9" rx="2" fill="#c0c0d0" />
+            <rect x="30" y="35" width="40" height="46" rx="4" fill={tc} stroke="rgba(139,92,246,0.4)" strokeWidth="1" />
+            <rect x="15" y="37" width="13" height="37" rx="4" fill="#c0c0d0" />
+            <rect x="72" y="37" width="13" height="37" rx="4" fill="#c0c0d0" />
+            <rect x="30" y="80" width="40" height="18" rx="3" fill={bc} />
+            <rect x="31" y="97" width="17" height="58" rx="4" fill={bc} />
+            <rect x="52" y="97" width="17" height="58" rx="4" fill={bc} />
           </svg>
-          <div className="absolute inset-0 rounded-full" style={{ boxShadow: "0 0 30px rgba(0,229,255,0.15)" }} />
+          <div className="absolute inset-0" style={{ boxShadow: "0 0 30px rgba(139,92,246,0.12)" }} />
         </div>
         <div className="text-center">
-          <p className="text-xs font-mono text-cyan-400/70 tracking-widest uppercase">3D Viewport</p>
+          <p className="text-xs font-mono text-primary/70 tracking-widest uppercase">3D Viewport</p>
           <p className="text-[10px] font-mono text-muted-foreground mt-1">WebGL — Active in Browser</p>
         </div>
         <div className="flex gap-1 mt-1">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="w-1 rounded-full bg-cyan-400/40" style={{ height: `${12 + Math.sin(i * 1.3) * 8}px` }} />
+            <div key={i} className="w-1 rounded-full bg-primary/40" style={{ height: `${12 + Math.sin(i * 1.3) * 8}px` }} />
           ))}
         </div>
       </div>
@@ -317,13 +217,9 @@ export function MannequinCanvas({ data }: Props) {
   return (
     <div
       ref={mountRef}
-      className="w-full h-full rounded-xl overflow-hidden border border-primary/20 bg-[#0a0a0f]"
-      onMouseDown={() => {
-        if (controlsRef.current) controlsRef.current.autoRotate = false;
-      }}
-      onMouseUp={() => {
-        if (controlsRef.current) controlsRef.current.autoRotate = true;
-      }}
+      className="w-full h-full rounded-xl overflow-hidden border border-primary/20 bg-[#08080e]"
+      onMouseDown={() => { if (controlsRef.current) controlsRef.current.autoRotate = false; }}
+      onMouseUp={() => { if (controlsRef.current) controlsRef.current.autoRotate = true; }}
     />
   );
 }

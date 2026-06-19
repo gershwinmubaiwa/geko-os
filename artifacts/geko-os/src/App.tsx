@@ -5,15 +5,30 @@ import { VirtualCloset } from "@/pages/VirtualCloset";
 import { ValueOptimizer } from "@/pages/ValueOptimizer";
 import { TheHub } from "@/pages/TheHub";
 import { AIStylist } from "@/pages/AIStylist";
-import { ClosetItem } from "@/data/closetData";
+import { closetItems, ClosetItem } from "@/data/closetData";
 import { MannequinData } from "@/components/MannequinCanvas";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Tab = "dashboard" | "closet" | "optimizer" | "stylist" | "hub";
 
+const TOP_CATEGORIES = ["Tops", "Outerwear", "Footwear", "Blazers"];
+const BOTTOM_CATEGORIES = ["Bottoms"];
+
+function findOutfitPair(item: ClosetItem): ClosetItem | null {
+  if (TOP_CATEGORIES.includes(item.category)) {
+    return closetItems.find(i => BOTTOM_CATEGORIES.includes(i.category) && i.id !== item.id) ?? null;
+  }
+  if (BOTTOM_CATEGORIES.includes(item.category)) {
+    return closetItems.find(i => TOP_CATEGORIES.includes(i.category) && i.id !== item.id) ?? null;
+  }
+  return null;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [selectedItem, setSelectedItem] = useState<ClosetItem | null>(null);
+  const [outfitPairItem, setOutfitPairItem] = useState<ClosetItem | null>(null);
+  const [highlightedBrands, setHighlightedBrands] = useState<string[]>([]);
 
   const [mannequinData, setMannequinData] = useState<MannequinData>({
     height: 175,
@@ -22,23 +37,47 @@ export default function App() {
     arms: 62,
     waist: 80,
     color: "#2a2a3a",
+    bottomColor: undefined,
   });
 
   const handleAnalyze = (item: ClosetItem) => {
     setSelectedItem(item);
+    setOutfitPairItem(null);
     setActiveTab("optimizer");
-    setMannequinData((prev) => ({ ...prev, color: item.color }));
+    setMannequinData(prev => ({ ...prev, color: item.color, bottomColor: undefined }));
   };
 
   const handleSelectItem = (item: ClosetItem) => {
     setSelectedItem(item);
-    setMannequinData((prev) => ({ ...prev, color: item.color }));
+    setOutfitPairItem(null);
+    setMannequinData(prev => ({ ...prev, color: item.color, bottomColor: undefined }));
   };
 
   const handleTryOn = () => {
     if (selectedItem) {
-      setMannequinData((prev) => ({ ...prev, color: selectedItem.color }));
+      setMannequinData(prev => ({ ...prev, color: selectedItem.color, bottomColor: outfitPairItem?.color }));
     }
+  };
+
+  const handleCompleteOutfit = (paired: ClosetItem) => {
+    setOutfitPairItem(paired);
+    if (!selectedItem) return;
+    const selectedIsTop = TOP_CATEGORIES.includes(selectedItem.category);
+    setMannequinData(prev => ({
+      ...prev,
+      color: selectedIsTop ? selectedItem.color : paired.color,
+      bottomColor: selectedIsTop ? paired.color : selectedItem.color,
+    }));
+  };
+
+  const handleHighlightBrands = (brands: string[]) => {
+    setHighlightedBrands(brands);
+  };
+
+  const handleOccasionSelect = (item: ClosetItem) => {
+    setSelectedItem(item);
+    setOutfitPairItem(null);
+    setMannequinData(prev => ({ ...prev, color: item.color, bottomColor: undefined }));
   };
 
   return (
@@ -62,39 +101,12 @@ export default function App() {
         </div>
 
         <div className="flex-1 py-6 px-4 flex flex-col gap-1">
-          <NavItem
-            icon={<LayoutDashboard />}
-            label="DASHBOARD"
-            isActive={activeTab === "dashboard"}
-            onClick={() => setActiveTab("dashboard")}
-          />
-          <NavItem
-            icon={<Shirt />}
-            label="VIRTUAL CLOSET"
-            isActive={activeTab === "closet"}
-            onClick={() => setActiveTab("closet")}
-          />
-          <NavItem
-            icon={<TrendingUp />}
-            label="VALUE OPTIMIZER"
-            isActive={activeTab === "optimizer"}
-            onClick={() => setActiveTab("optimizer")}
-          />
-          <NavItem
-            icon={<Bot />}
-            label="AI STYLIST"
-            isActive={activeTab === "stylist"}
-            onClick={() => setActiveTab("stylist")}
-          />
-
+          <NavItem icon={<LayoutDashboard />} label="DASHBOARD" isActive={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} />
+          <NavItem icon={<Shirt />} label="VIRTUAL CLOSET" isActive={activeTab === "closet"} onClick={() => setActiveTab("closet")} />
+          <NavItem icon={<TrendingUp />} label="VALUE OPTIMIZER" isActive={activeTab === "optimizer"} onClick={() => setActiveTab("optimizer")} />
+          <NavItem icon={<Bot />} label="AI STYLIST" isActive={activeTab === "stylist"} onClick={() => setActiveTab("stylist")} />
           <div className="h-px bg-border/50 my-2" />
-
-          <NavItem
-            icon={<Terminal />}
-            label="THE HUB"
-            isActive={activeTab === "hub"}
-            onClick={() => setActiveTab("hub")}
-          />
+          <NavItem icon={<Terminal />} label="THE HUB" isActive={activeTab === "hub"} onClick={() => setActiveTab("hub")} />
         </div>
 
         <div className="p-4 border-t border-sidebar-border bg-sidebar/50">
@@ -102,7 +114,6 @@ export default function App() {
             <div className="w-2 h-2 rounded-full bg-[#00ff00] animate-pulse shadow-[0_0_8px_#00ff00]" />
             <span className="text-[10px] font-mono tracking-widest text-muted-foreground">SYSTEM ONLINE</span>
           </div>
-
           <div className="flex items-center gap-3 p-2 rounded-md hover:bg-sidebar-accent cursor-pointer transition-colors">
             <Avatar className="h-9 w-9 border border-border">
               <AvatarImage src="" />
@@ -119,7 +130,6 @@ export default function App() {
       {/* Main Content Area */}
       <div className="flex-1 h-screen relative overflow-hidden" style={{ background: "radial-gradient(ellipse at 80% 0%, rgba(139,92,246,0.06) 0%, transparent 60%), hsl(220 13% 4%)" }}>
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:28px_28px] pointer-events-none" />
-
         <main className="relative z-10 w-full h-full">
           {activeTab === "dashboard" && (
             <Dashboard
@@ -127,13 +137,25 @@ export default function App() {
               setMannequinData={setMannequinData}
               onSelectItem={handleSelectItem}
               selectedItemId={selectedItem?.id ?? null}
+              highlightedBrands={highlightedBrands}
             />
           )}
           {activeTab === "closet" && <VirtualCloset onAnalyze={handleAnalyze} />}
           {activeTab === "optimizer" && (
-            <ValueOptimizer selectedItem={selectedItem} onTryOn={handleTryOn} />
+            <ValueOptimizer
+              selectedItem={selectedItem}
+              outfitPairItem={outfitPairItem}
+              onTryOn={handleTryOn}
+              onCompleteOutfit={handleCompleteOutfit}
+            />
           )}
-          {activeTab === "stylist" && <AIStylist />}
+          {activeTab === "stylist" && (
+            <AIStylist
+              onHighlightBrands={handleHighlightBrands}
+              onNavigateToDashboard={() => setActiveTab("dashboard")}
+              onSelectItem={handleOccasionSelect}
+            />
+          )}
           {activeTab === "hub" && <TheHub />}
         </main>
       </div>
@@ -141,17 +163,7 @@ export default function App() {
   );
 }
 
-function NavItem({
-  icon,
-  label,
-  isActive,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  isActive: boolean;
-  onClick: () => void;
-}) {
+function NavItem({ icon, label, isActive, onClick }: { icon: React.ReactNode; label: string; isActive: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -162,13 +174,7 @@ function NavItem({
           : "border-transparent text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white"
         }`}
     >
-      <div
-        className={`w-5 h-5 flex-shrink-0 ${
-          isActive
-            ? "text-primary drop-shadow-[0_0_8px_rgba(139,92,246,0.9)]"
-            : "text-muted-foreground"
-        }`}
-      >
+      <div className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-primary drop-shadow-[0_0_8px_rgba(139,92,246,0.9)]" : "text-muted-foreground"}`}>
         {icon}
       </div>
       {label}
