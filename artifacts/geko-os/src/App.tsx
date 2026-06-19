@@ -145,6 +145,7 @@ export default function App() {
             <ValueOptimizer
               selectedItem={selectedItem}
               outfitPairItem={outfitPairItem}
+              mannequinData={mannequinData}
               onTryOn={handleTryOn}
               onCompleteOutfit={handleCompleteOutfit}
             />
