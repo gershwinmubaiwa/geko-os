@@ -1,0 +1,67 @@
+Perform a complete premium overhaul of the Trueform application, upgrading the visual design, adding real product images, and implementing interactive logic. Execute all of the following requirements perfectly without breaking existing functionality:
+
+
+
+1. BRANDING & NAME CHANGE:
+
+- Find and replace every mention of "Geko OS", "Geko Dashboard", or "Geko" with "Trueform".
+
+- Ensure the main header clearly displays "Trueform Dashboard".
+
+
+
+2. PREMIUM LUXURY VISUALS (Colors, Sidebar, & Liquid Buttons):
+
+- Change the overall color scheme to a premium luxury aesthetic: use a deep obsidian/charcoal background with smooth gradient accents of electric violet and soft neon cyan.
+
+- Redesign the layout to include a sleek, minimalist navigation sidebar.
+
+- Give all interactive buttons a "liquid" hover effect (smoothly morphing/scaling the background gradient and size on hover).
+
+
+
+3. EXPANDED CATALOG WITH IMAGES:
+
+- Build a "Brand Catalog" grid panel next to the 3D model displaying 6 real-world items with high-quality placeholder image URLs from Unsplash:
+
+* Nike Tech Hoodie ($115) -> [Grey hoodie image]
+
+* Nike Air Max ($150) -> [Running sneaker image]
+
+* Adidas Track Pants ($70) -> [Black sports pants image]
+
+* Zara Slim Blazer ($90) -> [Sleek blazer image]
+
+* Shein Casual Jacket ($25) -> [Casual jacket image]
+
+* Shein Cargo Pants ($18) -> [Cargo pants image]
+
+- Style each item inside a clean card showing its image, brand, and price.
+
+
+
+4. INTERACTIVE 3D TRY-ON & VALUE OPTIMIZER MATH:
+
+- When a user clicks an item in the catalog:
+
+1. Instantly change the color or texture of the 3D mannequin to match that item's look (e.g., clicking the Nike Tech Hoodie turns the upper body dark grey).
+
+2. Automatically update the Value Optimizer module to show that item's price, run a calculation to show its 'Cost-Per-Wear' based on 50 uses (Price / 50), and animate the quality/value progress bars.
+
+
+
+5. INTELLECTUAL AI STYLIST CHAT LOGIC:
+
+- Create a sleek "Trueform AI Stylist" chat panel.
+
+- Implement a JavaScript handler that reads user messages and replies with smart, tailored advice based on keywords:
+
+* If message contains "Nike", "casual", or "hoodie" -> Reply: "Trueform AI: For a clean streetwear look, pair that Nike Tech Hoodie with the Adidas Track Pants and Air Max sneakers to keep the silhouette sleek and athletic."
+
+* If message contains "Zara", "formal", or "blazer" -> Reply: "Trueform AI: Elevate your style by pairing the Zara Slim Blazer with clean minimalist basics. This balances comfort with a high-end, tailored aesthetic."
+
+* For any other input -> Reply: "Trueform AI: Try mixing high-low fashion! Pair your premium pieces (like Nike or Zara) with casual basics (like Shein) to maximize your Value Optimizer score."
+
+
+
+Ensure all HTML, CSS, and JavaScript changes are self-contained, apply instantly without requiring a page reload, and output no syntax errors.
