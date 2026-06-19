@@ -1,0 +1,24 @@
+Implement three high-impact logical features across the Trueform application using clean, self-contained HTML, CSS, and vanilla JavaScript. Follow these precise rules to maintain the current visual structure and prevent runtime errors:
+
+1. CROSS-BRAND SIZE TRANSLATION & RETURN RISK (Fit & Body Accuracy):
+- Establish an event listener on the existing Biometrics sliders (Height, Shoulders, Chest, Arms, Waist).
+- Inside each product card in the Brand Catalog, inject a small, elegant dynamically updated element text badge: "Recommended Size: [Size]" and a "Return Risk: [Low/Medium/High]" status pill.
+- Write a JavaScript sizing engine using these rules:
+  * For NIKE/ADIDAS items: If Chest > 95cm or Shoulders > 45cm, display 'Size: L (Low Return Risk)'. If Chest is between 85-95cm, display 'Size: M (Low Return Risk)'. Otherwise, display 'Size: S'.
+  * For ZARA items: If Waist > 82cm, display 'Size: L (Medium Return Risk - Runs Tailored)'.
+  * For SHEIN items: Sizing runs significantly smaller. If Chest > 90cm, display 'Size: XL (High Return Risk - Size up)'. Otherwise, display 'Size: L'.
+
+2. OCCASION & WEATHER-AWARE FILTERS (AI Stylist Enhancements):
+- Right above the entry field in the Trueform AI Stylist panel, add 4 sleek, semi-transparent filter chips: "Streetwear", "Formal", "Rainy Day", "Heatwave".
+- Add click events to these chips:
+  * Clicking 'Streetwear' highlights the Nike and Adidas cards and auto-fills the AI Chat with: "Show me a streetwear combination."
+  * Clicking 'Formal' highlights the Zara Blazer card and auto-fills the AI Chat with: "How should I style this formal piece?"
+  * Clicking 'Rainy Day' or 'Heatwave' surfaces a small weather advisory text box in the AI Stylist box detailing fabric suitability (e.g., "Note: Shein synthetic fabrics have low breathability for heatwaves").
+
+3. ONE-CLICK "COMPLETE THE OUTFIT" (Smart Shopping Mechanics):
+- Inside the Value Optimizer panel, right below the 'Target Item' container, add a clean secondary button labeled "Complete the Outfit".
+- When clicked, look at the currently selected item. If a Top is selected (e.g., Nike Hoodie), automatically select the best matching Bottom (e.g., Adidas Track Pants) concurrently:
+  * Update the 3D Mannequin viewport split-colors (upper body matching the top, lower body matching the bottom).
+  * Update the Cost-Per-Wear analysis section to show a combined metric: (Price of Top + Price of Bottom) / 50 uses, and display a combined "Total Outfit Value" financial score.
+
+Ensure all styles use existing glassmorphism CSS variables, do not duplicate structural classes, and execute immediately on element interaction without console errors.
