@@ -1,4 +1,8 @@
+cat > ~/workspace/artifacts/api-server/vercel.json << 'EOF'
 {
   "version": 2,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+  "buildCommand": "cd ../.. && pnpm run typecheck && cd artifacts/api-server && pnpm run build",
+  "installCommand": "cd ../.. && pnpm install"
 }
+EOF
+cat ~/workspace/artifacts/api-server/vercel.json
