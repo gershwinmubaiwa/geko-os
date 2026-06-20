@@ -1,6 +1,4 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && pnpm run typecheck && cd artifacts/api-server && pnpm run build",
-  "installCommand": "cd ../.. && pnpm install",
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }
