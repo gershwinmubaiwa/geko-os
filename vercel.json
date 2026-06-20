@@ -1,5 +1,6 @@
 {
   "version": 2,
-  "builds": [{ "src": "dist/index.mjs", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "dist/index.mjs" }]
+  "buildCommand": "cd ../.. && pnpm run typecheck && cd artifacts/api-server && pnpm run build",
+  "installCommand": "cd ../.. && pnpm install",
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }
